@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "565285676661",
+    "project_id": "notemind-app-7e7b4",
+    "storage_bucket": "notemind-app-7e7b4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:565285676661:android:a2abf0cf6b630f0a1ffa3c",
+        "android_client_info": {
+          "package_name": "com.example.notemind_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "565285676661-k8k70apkn2l08qll4gtka4i7l10s0122.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxpFl6cqQ2zBNXjZ1e9hO7L_kAK52FxT0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "565285676661-k8k70apkn2l08qll4gtka4i7l10s0122.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
