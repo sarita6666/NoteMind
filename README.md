@@ -218,7 +218,7 @@ Componentes reutilizables personalizados.
 
 # Integrante
 
-- Sarita Gonzales Robayo
+- Sarita Gonzalez Robayo
 
 ---
 
