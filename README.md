@@ -1,59 +1,74 @@
-# NoteMind App
+#  NoteMind App
 
-Aplicación móvil desarrollada en Flutter orientada a la gestión inteligente de notas y comunicación interactiva mediante herramientas de inteligencia artificial. El proyecto integra autenticación de usuarios, almacenamiento de información y funcionalidades de chat para ofrecer una experiencia moderna y dinámica.
+Aplicación móvil desarrollada con **Flutter** que permite gestionar notas personales, comunicarse mediante un sistema de chat e interactuar con un asistente de inteligencia artificial. La aplicación integra múltiples servicios en la nube para ofrecer autenticación segura, almacenamiento de información y gestión de archivos multimedia.
 
 ---
 
 # Descripción del Proyecto
 
-NoteMind App es una aplicación diseñada para facilitar la organización de notas personales y la interacción mediante un sistema de chat integrado con inteligencia artificial. El proyecto fue desarrollado como parte del proceso formativo del SENA, aplicando buenas prácticas de desarrollo de software, modularización y separación de responsabilidades.
+**NoteMind App** es una aplicación móvil diseñada para facilitar la organización de información personal mediante notas inteligentes y herramientas de comunicación. Además de permitir la creación y administración de notas, incorpora un sistema de mensajería y un asistente basado en inteligencia artificial que mejora la productividad del usuario.
 
-La aplicación permite a los usuarios:
+Como parte de su arquitectura, el proyecto integra diferentes servicios en la nube para aprovechar las fortalezas de cada plataforma:
 
-- Registrarse e iniciar sesión.
-- Crear y administrar notas.
-- Utilizar un chat con inteligencia artificial.
-- Gestionar información de perfil.
-- Interactuar mediante un sistema de mensajería.
+- **Firebase Authentication** para la autenticación de usuarios.
+- **Cloud Firestore** para el almacenamiento de información de la aplicación.
+- **Supabase Storage** para almacenar imágenes y videos compartidos dentro de la aplicación.
+- **Backend desarrollado en Node.js** encargado de la comunicación con la inteligencia artificial.
 
 ---
 
 # Objetivo General
 
-Desarrollar una aplicación móvil multiplataforma que permita gestionar notas y utilizar herramientas de inteligencia artificial mediante una interfaz moderna, intuitiva y funcional.
+Desarrollar una aplicación móvil multiplataforma que permita gestionar notas, compartir contenido multimedia e interactuar con un asistente inteligente mediante una interfaz moderna, intuitiva y segura.
+
+---
+
+# Características Principales
+
+- Registro e inicio de sesión.
+- Gestión completa de notas.
+- Edición y eliminación de notas.
+- Compartir notas con otros usuarios.
+- Chat en tiempo real.
+- Chat con inteligencia artificial.
+- Perfil de usuario personalizable.
+- Envío de imágenes.
+- Envío de videos.
+- Almacenamiento seguro de archivos multimedia.
+- Interfaz moderna y responsive.
 
 ---
 
 # Tecnologías Utilizadas
 
+## Desarrollo
+
 - Flutter
 - Dart
-- Firebase
+
+## Backend
+
 - Node.js
 - Express.js
 
----
+## Base de Datos y Servicios
 
-# Funcionalidades Principales
+- Firebase Authentication
+- Cloud Firestore
+- Supabase Storage
 
-- Sistema de autenticación de usuarios.
-- Registro e inicio de sesión.
-- Gestión de notas.
-- Chat con inteligencia artificial.
-- Sistema de mensajería.
-- Gestión de perfil de usuario.
-- Interfaz moderna y responsive.
+## Inteligencia Artificial
+
+- API de Inteligencia Artificial (Backend)
 
 ---
 
 # Arquitectura del Proyecto
 
-El proyecto se encuentra organizado por módulos y capas para facilitar el mantenimiento y la escalabilidad.
+El proyecto sigue una estructura modular que facilita su mantenimiento, escalabilidad y reutilización del código.
 
-## Estructura del Proyecto
-
-```plaintext
-C:.
+```text
+lib
 │   firebase_options.dart
 │   main.dart
 │
@@ -79,10 +94,8 @@ C:.
 │   │       register_screen.dart
 │   │
 │   ├───chat
-│   │   │   chat_screen.dart
-│   │   │
-│   │   └───screens
-│   │       └───chat
+│   │       chat_screen.dart
+│   │
 │   ├───chat_ai
 │   │       chat_ai_screen.dart
 │   │
@@ -113,20 +126,49 @@ C:.
 
 ---
 
+# Organización de Carpetas
+
+### core
+
+Contiene la configuración global de la aplicación, temas, colores y utilidades compartidas.
+
+### models
+
+Modelos de datos utilizados para representar usuarios, notas y mensajes.
+
+### routes
+
+Administración centralizada de las rutas de navegación.
+
+### screens
+
+Pantallas principales organizadas por módulos funcionales.
+
+### services
+
+Implementación de la lógica de negocio y comunicación con Firebase, Supabase y el backend.
+
+### widgets
+
+Componentes reutilizables personalizados utilizados en toda la aplicación.
+
+---
+
 # Requisitos Previos
 
-Antes de ejecutar el proyecto es necesario tener instalado:
+Antes de ejecutar el proyecto es necesario contar con:
 
 - Flutter SDK
 - Dart SDK
 - Node.js
-- Android Studio o VS Code
+- Android Studio o Visual Studio Code
 - Emulador Android o dispositivo físico
-- Firebase configurado
+- Proyecto de Firebase configurado
+- Proyecto de Supabase configurado
 
 ---
 
-# Instalación y Ejecución
+# Instalación
 
 ## 1. Clonar el repositorio
 
@@ -134,9 +176,7 @@ Antes de ejecutar el proyecto es necesario tener instalado:
 git clone https://github.com/sarita6666/NoteMind-App.git
 ```
 
----
-
-## 2. Ingresar a la carpeta del proyecto
+## 2. Entrar al proyecto
 
 ```bash
 cd notemind_app
@@ -144,21 +184,21 @@ cd notemind_app
 
 ---
 
-## 3. Configurar y ejecutar el backend
+# Configuración del Backend
 
-Ingresar a la carpeta backend:
+Ingresar a la carpeta del backend.
 
 ```bash
 cd backend
 ```
 
-Instalar dependencias:
+Instalar dependencias.
 
 ```bash
 npm install
 ```
 
-Ejecutar servidor:
+Iniciar el servidor.
 
 ```bash
 node app.js
@@ -166,27 +206,27 @@ node app.js
 
 ---
 
-## 4. Ejecutar la aplicación Flutter
+# Ejecución de Flutter
 
-Regresar a la raíz del proyecto:
+Regresar a la carpeta principal.
 
 ```bash
 cd ..
 ```
 
-Actualizar Flutter:
+Actualizar Flutter.
 
 ```bash
 flutter upgrade
 ```
 
-Instalar dependencias:
+Instalar dependencias.
 
 ```bash
 flutter pub get
 ```
 
-Ejecutar aplicación:
+Ejecutar la aplicación.
 
 ```bash
 flutter run
@@ -194,35 +234,32 @@ flutter run
 
 ---
 
-# Organización del Código
+# Flujo General de la Aplicación
 
-## core
-Contiene configuraciones globales, estilos y utilidades.
-
-## models
-Modelos de datos utilizados en la aplicación.
-
-## routes
-Configuración de rutas y navegación.
-
-## screens
-Pantallas principales organizadas por módulos.
-
-## services
-Servicios encargados de la lógica y conexión con backend o Firebase.
-
-## widgets
-Componentes reutilizables personalizados.
+1. El usuario inicia sesión mediante Firebase Authentication.
+2. La información personal y las notas se almacenan en Cloud Firestore.
+3. Las imágenes y videos son almacenados en Supabase Storage.
+4. El chat utiliza Firestore para sincronizar los mensajes.
+5. El asistente inteligente se comunica mediante el backend desarrollado en Node.js.
 
 ---
 
 # Integrante
 
-- Sarita Gonzalez Robayo
+**Sarita Gonzales Robayo**
 
 ---
 
 # Información Académica
 
-- Servicio Nacional de Aprendizaje SENA
-- Ficha: 3147272
+**Servicio Nacional de Aprendizaje (SENA)**
+
+**Programa de Formación:** Análisis y Desarrollo de Software (ADSO)
+
+**Ficha:** 3147272
+
+---
+
+# Repositorio
+
+https://github.com/sarita6666/NoteMind-App
