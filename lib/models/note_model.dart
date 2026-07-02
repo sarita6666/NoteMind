@@ -8,10 +8,11 @@ class NoteModel {
   final String userName;
   final String userRole;
   final String category;
-  final String imageUrl;
-  final bool isPublic;
 
-  // 🔥 NUEVO
+  final String imageUrl;
+  final String videoUrl;
+
+  final bool isPublic;
   final DateTime createdAt;
 
   final List<String> likes;
@@ -24,12 +25,18 @@ class NoteModel {
     required this.userName,
     required this.userRole,
     required this.category,
-    required this.imageUrl,
+
+    this.imageUrl = '',
+    this.videoUrl = '',
     required this.isPublic,
     required this.createdAt,
+
     this.likes = const [],
   });
 
+  // =========================
+  // TO MAP
+  // =========================
   Map<String, dynamic> toMap() {
     return {
       "title": title,
@@ -38,13 +45,19 @@ class NoteModel {
       "userName": userName,
       "userRole": userRole,
       "category": category,
+
       "imageUrl": imageUrl,
+      "videoUrl": videoUrl,
+
       "isPublic": isPublic,
       "createdAt": FieldValue.serverTimestamp(),
       "likes": likes,
     };
   }
 
+  // =========================
+  // FROM MAP
+  // =========================
   factory NoteModel.fromMap(Map<String, dynamic> map, String id) {
     return NoteModel(
       id: id,
@@ -54,8 +67,11 @@ class NoteModel {
       userName: map["userName"] ?? "Usuario",
       userRole: map["userRole"] ?? "Sin rol",
       category: map["category"] ?? "",
+
       imageUrl: map["imageUrl"] ?? "",
+      videoUrl: map["videoUrl"] ?? "",
       isPublic: map["isPublic"] ?? false,
+
       likes: List<String>.from(map["likes"] ?? []),
 
       createdAt: map["createdAt"] != null

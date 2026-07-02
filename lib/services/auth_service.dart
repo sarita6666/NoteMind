@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   final _auth = FirebaseAuth.instance;
@@ -8,10 +9,15 @@ class AuthService {
 
   // LOGIN
   Future<User?> login(String email, String password) async {
+    if (!kIsWeb) {
+      await _auth.signOut();
+    }
+
     final cred = await _auth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
+
     return cred.user;
   }
 

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../models/note_model.dart';
 import '../../services/note_service.dart';
 import '../../services/user_service.dart';
+import '../../services/supabase_storage_service.dart';
 import '../../widgets/custom_alert.dart';
+import 'package:flutter/foundation.dart';
 
 class NotesScreen extends StatefulWidget {
   final NoteModel? note;
@@ -23,7 +27,9 @@ class _NotesScreenState extends State<NotesScreen> {
 
   String _category = "General";
   bool isPublic = true;
-
+  bool isLoading = false;
+  XFile? selectedImage;
+  XFile? selectedVideo;
   final List<String> categories = [
     "General",
     "Trabajo",
@@ -32,7 +38,7 @@ class _NotesScreenState extends State<NotesScreen> {
     "Personal",
     "Importante",
     "Urgente",
-    "Otros"
+    "Otros",
   ];
 
   NoteModel? _editingNote;
@@ -60,6 +66,30 @@ class _NotesScreenState extends State<NotesScreen> {
     super.dispose();
   }
 
+  Future<void> pickVideo() async {
+    final picker = ImagePicker();
+
+    final video = await picker.pickVideo(source: ImageSource.gallery);
+
+    if (video != null) {
+      setState(() {
+        selectedVideo = video;
+      });
+    }
+  }
+
+  Future<void> pickImage() async {
+    final picker = ImagePicker();
+
+    final image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      setState(() {
+        selectedImage = image;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -71,136 +101,270 @@ class _NotesScreenState extends State<NotesScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
+
       extendBodyBehindAppBar: true,
+
       body: Container(
         width: double.infinity,
         height: double.infinity,
+
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF7B2FF7),
-              Color(0xFFF107A3),
-            ],
+            colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: const [
-                BoxShadow(color: Colors.black26, blurRadius: 20)
-              ],
-            ),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _titleController,
-                  focusNode: _titleFocus,
-                  textInputAction: TextInputAction.next,
-                  onSubmitted: (_) {
-                    FocusScope.of(context).requestFocus(_contentFocus);
-                  },
-                  decoration: InputDecoration(
-                    labelText: "Título",
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 15),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
 
-                TextField(
-                  controller: _contentController,
-                  focusNode: _contentFocus,
-                  textInputAction: TextInputAction.done,
-                  maxLines: 5,
-                  onSubmitted: (_) async {
-                    await _saveOrUpdateNote(user?.uid);
-                  },
-                  decoration: InputDecoration(
-                    labelText: "Contenido",
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
+            child: Container(
+              padding: const EdgeInsets.all(20),
 
-                const SizedBox(height: 15),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 20),
+                ],
+              ),
 
-                DropdownButtonFormField<String>(
-                  value: _category,
-                  items: categories
-                      .map((cat) =>
-                          DropdownMenuItem(value: cat, child: Text(cat)))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _category = value!;
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: "Categoría",
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // =========================
+                  // TITULO
+                  // =========================
+                  TextField(
+                    controller: _titleController,
+                    focusNode: _titleFocus,
+                    textInputAction: TextInputAction.next,
 
-                const SizedBox(height: 10),
+                    onSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(_contentFocus);
+                    },
 
-                SwitchListTile(
-                  title: const Text("Nota pública"),
-                  value: isPublic,
-                  onChanged: (value) {
-                    setState(() {
-                      isPublic = value;
-                    });
-                  },
-                ),
+                    decoration: InputDecoration(
+                      labelText: "Título",
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
 
-                const Spacer(),
-
-                GestureDetector(
-                  onTap: () async {
-                    await _saveOrUpdateNote(user?.uid);
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF7B2FF7),
-                          Color(0xFFF107A3),
-                        ],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
                       ),
-                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(
-                      child: Text(
-                        "Guardar Nota",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // =========================
+                  // CONTENIDO
+                  // =========================
+                  TextField(
+                    controller: _contentController,
+                    focusNode: _contentFocus,
+                    textInputAction: TextInputAction.done,
+                    maxLines: 5,
+
+                    onSubmitted: (_) async {
+                      await _saveOrUpdateNote(user?.uid);
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: "Contenido",
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // =========================
+                  // CATEGORIA
+                  // =========================
+                  DropdownButtonFormField<String>(
+                    initialValue: _category,
+
+                    items: categories.map((cat) {
+                      return DropdownMenuItem(value: cat, child: Text(cat));
+                    }).toList(),
+
+                    onChanged: (value) {
+                      setState(() {
+                        _category = value!;
+                      });
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: "Categoría",
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // =========================
+                  // PUBLICA
+                  // =========================
+                  SwitchListTile(
+                    title: const Text("Nota pública"),
+                    value: isPublic,
+
+                    onChanged: (value) {
+                      setState(() {
+                        isPublic = value;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 10),
+                  //boton imagen
+                  ElevatedButton.icon(
+                    onPressed: pickImage,
+                    icon: const Icon(Icons.image),
+                    label: const Text("Agregar imagen"),
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1565C0),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+                  //boton video
+                  const SizedBox(height: 10),
+
+                  ElevatedButton.icon(
+                    onPressed: pickVideo,
+                    icon: const Icon(Icons.video_library),
+                    label: const Text("Agregar video"),
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+
+                  //imagen preview
+                  if (selectedImage != null)
+                    Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+
+                          child: Container(
+                            width: double.infinity,
+
+                            constraints: const BoxConstraints(maxHeight: 250),
+
+                            color: Colors.grey.shade200,
+
+                            child: kIsWeb
+                                ? Image.network(
+                                    selectedImage!.path,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.file(
+                                    File(selectedImage!.path),
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
                         ),
+
+                        const SizedBox(height: 10),
+
+                        // =========================
+                        // QUITAR IMAGEN
+                        // =========================
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              selectedImage = null;
+                            });
+                          },
+
+                          icon: const Icon(Icons.close),
+
+                          label: const Text("Quitar imagen"),
+
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  const SizedBox(height: 20),
+
+                  // =========================
+                  // BOTON GUARDAR
+                  // =========================
+                  GestureDetector(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            setState(() {
+                              isLoading = true;
+                            });
+
+                            try {
+                              await _saveOrUpdateNote(user?.uid);
+                            } finally {
+                              if (mounted) {
+                                setState(() {
+                                  isLoading = false;
+                                });
+                              }
+                            }
+                          },
+
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                        ),
+
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+
+                      child: Center(
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                "Guardar Nota",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -208,7 +372,9 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  // 🔥 GUARDAR / ACTUALIZAR
+  // =========================
+  // GUARDAR / ACTUALIZAR
+  // =========================
   Future<void> _saveOrUpdateNote(String? userId) async {
     if (userId == null) {
       CustomAlert.show(
@@ -236,10 +402,8 @@ class _NotesScreenState extends State<NotesScreen> {
     }
 
     try {
-      print("GUARDANDO NOTA...");
-      print("USER ID: $userId");
-
       final userSnap = await UserService().getUser(userId).first;
+
       final data = userSnap.data() as Map<String, dynamic>?;
 
       if (data == null) {
@@ -254,8 +418,39 @@ class _NotesScreenState extends State<NotesScreen> {
         return;
       }
 
-      print("USER DATA OK: $data");
+      // SUBIR IMAGEN
+      String uploadedImageUrl = '';
 
+      if (selectedImage != null) {
+        final bytes = await selectedImage!.readAsBytes();
+
+        final storage = SupabaseStorageService();
+
+        uploadedImageUrl =
+            await storage.uploadImage(
+              bytes,
+              'notes/${DateTime.now().millisecondsSinceEpoch}_${selectedImage!.name}',
+            ) ??
+            '';
+      }
+      //subir video
+      String uploadedVideoUrl = '';
+
+      if (selectedVideo != null) {
+        final bytes = await selectedVideo!.readAsBytes();
+
+        final storage = SupabaseStorageService();
+
+        uploadedVideoUrl =
+            await storage.uploadVideo(
+              bytes,
+              'videos/${DateTime.now().millisecondsSinceEpoch}_${selectedVideo!.name}',
+            ) ??
+            '';
+      }
+      // =========================
+      // CREAR
+      // =========================
       if (_editingNote == null) {
         await NoteService().create(
           NoteModel(
@@ -266,22 +461,26 @@ class _NotesScreenState extends State<NotesScreen> {
             userId: userId,
             userName: data['name'] ?? 'Usuario',
             userRole: data['role'] ?? 'Sin rol',
-            imageUrl: '',
+            imageUrl: uploadedImageUrl,
+            videoUrl: uploadedVideoUrl,
             isPublic: isPublic,
             createdAt: DateTime.now(),
           ),
         );
-
-        print("NOTA CREADA");
 
         CustomAlert.show(
           context,
           title: "Guardado",
           message: "Tu nota se guardó correctamente",
           icon: Icons.check_circle,
-          color: Colors.green,
+          color: Colors.blue,
+          success: true,
         );
-      } else {
+      }
+      // =========================
+      // ACTUALIZAR
+      // =========================
+      else {
         await NoteService().update(
           NoteModel(
             id: _editingNote!.id,
@@ -291,28 +490,38 @@ class _NotesScreenState extends State<NotesScreen> {
             userId: userId,
             userName: _editingNote!.userName,
             userRole: _editingNote!.userRole,
-            imageUrl: '',
+            imageUrl: uploadedImageUrl.isEmpty
+                ? _editingNote!.imageUrl
+                : uploadedImageUrl,
+            videoUrl: uploadedVideoUrl.isEmpty
+                ? _editingNote!.videoUrl
+                : uploadedVideoUrl,
+
             isPublic: isPublic,
             createdAt: _editingNote!.createdAt,
           ),
         );
-
-        print("NOTA ACTUALIZADA");
 
         CustomAlert.show(
           context,
           title: "Actualizado",
           message: "Tu nota se actualizó correctamente",
           icon: Icons.check_circle,
-          color: Colors.green,
+          color: Colors.blue,
+          success: true,
         );
       }
 
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) Navigator.pop(context);
+      // =========================
+      // REDIRECCION AL HOME
+      // =========================
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       });
     } catch (e) {
-      print("ERROR GUARDANDO NOTA: $e");
+      print(e);
 
       CustomAlert.show(
         context,

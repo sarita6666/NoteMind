@@ -63,7 +63,7 @@ class NoteService {
     required String userRole,
     required String userId,
     String? parentId,
-    String? parentUserName, // 🔥 NUEVO
+    String? parentUserName,
   }) async {
     await _db.collection("notes").doc(noteId).collection("comments").add({
       "text": text,
@@ -71,7 +71,7 @@ class NoteService {
       "userRole": userRole,
       "userId": userId,
       "parentId": parentId,
-      "parentUserName": parentUserName, // 🔥
+      "parentUserName": parentUserName,
       "createdAt": FieldValue.serverTimestamp(),
     });
   }
@@ -90,7 +90,6 @@ class NoteService {
 
     if (user == null) return;
 
-    // 🔥 obtener datos del usuario desde Firestore
     final userDoc = await _db.collection("users").doc(user.uid).get();
     final userData = userDoc.data();
 
@@ -121,12 +120,10 @@ class NoteService {
     });
   }
 
-  // ✅ ELIMINAR
   Future<void> delete(String id) async {
     await _db.collection("notes").doc(id).delete();
   }
 
-  // ✅ ACTUALIZAR (NO tocar createdAt)
   Future<void> update(NoteModel note) async {
     final data = note.toMap();
     data.remove("createdAt"); // 🔥 evita sobrescribir fecha

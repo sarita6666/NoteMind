@@ -8,22 +8,21 @@ class UserService {
     required String name,
     required String email,
     String bio = "",
-    String photoUrl = "",
+    String? photoUrl,
   }) async {
-    await _db.collection('users').doc(uid).set({
-      'name': name,
-      'email': email,
-      'bio': bio,
-      'uid': uid,
-      'photoUrl': photoUrl,
-    }, SetOptions(merge: true));
+    final data = {'name': name, 'email': email, 'bio': bio, 'uid': uid};
+
+    if (photoUrl != null) {
+      data['photoUrl'] = photoUrl;
+    }
+
+    await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
   }
 
   Stream<DocumentSnapshot> getUser(String uid) {
     return _db.collection('users').doc(uid).snapshots();
   }
 
-  // 🔥 FIX IMPORTANTE
   Stream<List<Map<String, dynamic>>> searchUsers(String query) {
     return _db.collection("users").snapshots().map((snapshot) {
       return snapshot.docs

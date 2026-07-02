@@ -6,10 +6,10 @@ import '../../models/note_model.dart';
 import '../../services/user_service.dart';
 import '../../services/chat_service.dart';
 import '../../models/message_model.dart';
-
+import 'package:video_player/video_player.dart';
 import '../../widgets/custom_bottom_nav.dart';
-import '../../widgets/custom_alert.dart';
 import '../notes/notes_screen.dart';
+import 'package:flutter/services.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.share, color: Color(0xFF7B2FF7)),
+                      Icon(Icons.share, color: Color(0xFF1565C0)),
                       SizedBox(width: 8),
                       Text(
                         "Compartir nota",
@@ -50,14 +50,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   const SizedBox(height: 10),
-
                   Expanded(
                     child: ListView.builder(
                       itemCount: users.length,
                       itemBuilder: (context, index) {
                         final u = users[index].data();
 
-                        // 🔥 VALIDAR USER
                         final receiverId = u["uid"];
                         if (receiverId == null ||
                             receiverId.toString().isEmpty) {
@@ -70,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF7B2FF7),
+                            backgroundColor: const Color(0xFF1565C0),
                             child: Text(
                               (u["name"] ?? "U")[0].toUpperCase(),
                               style: const TextStyle(color: Colors.white),
@@ -82,12 +80,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.pop(context);
 
                             try {
-                              // 🔥 VALIDAR USER ACTUAL
                               if (user == null || user!.uid.isEmpty) {
                                 throw Exception("Usuario no válido");
                               }
 
-                              // 🔥 VALIDAR NOTE ID
                               if (noteId.isEmpty) {
                                 throw Exception("noteId vacío");
                               }
@@ -105,7 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               final noteData =
                                   noteDoc.data() as Map<String, dynamic>;
 
-                              // 🔥 ASEGURAR sharedWith
                               List sharedWith =
                                   (noteData["sharedWith"] ?? []) as List;
 
@@ -120,12 +115,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                               final chatId = _chatService.getChatId(
                                 user!.uid,
-                                receiverId.toString(), // 🔥 FIX
+                                receiverId.toString(),
                               );
 
                               await _chatService.createChat(
                                 user!.uid,
-                                receiverId.toString(), // 🔥 FIX
+                                receiverId.toString(),
                               );
 
                               await _chatService.sendMessage(
@@ -137,6 +132,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   type: "note",
                                   noteId: noteId,
                                   timestamp: DateTime.now(),
+                                  seen: false,
+                                  replyTo: "",
+                                  replyText: "",
+                                  replySender: "",
+                                  replySenderId: "",
                                 ),
                               );
 
@@ -214,17 +214,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: const Color(0xFFF1F4F9),
 
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
-        elevation: 0,
+        elevation: 5,
+        shadowColor: Colors.black26,
         toolbarHeight: 70,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF7B2FF7), Color(0xFFF107A3)],
+              colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
             ),
           ),
         ),
@@ -269,170 +272,310 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: _confirmLogout,
+          if (isMobile)
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.tune, color: Colors.white),
+                tooltip: "Filtros",
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+              ),
+            ),
+
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: _confirmLogout,
+            ),
           ),
         ],
       ),
-
       body: SafeArea(
-        child: Column(
+        child: Row(
           children: [
-            const SizedBox(height: 10),
+            Expanded(
+              flex: 4,
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+
                     child: TextField(
                       onChanged: (value) {
                         setState(() {
                           searchCategory = value;
                         });
                       },
+
                       decoration: InputDecoration(
-                        hintText: "Buscar...",
+                        hintText: "Buscar notas...",
+
                         prefixIcon: const Icon(Icons.search),
+
                         filled: true,
+
                         fillColor: Colors.white,
+
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(15),
+
                           borderSide: BorderSide.none,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  DropdownButton<String>(
-                    value: selectedCategory,
-                    items: categories
-                        .map(
-                          (cat) =>
-                              DropdownMenuItem(value: cat, child: Text(cat)),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedCategory = value!;
-                      });
-                    },
+
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                            children: [
+                              const Text(
+                                "Mis Notas",
+
+                                style: TextStyle(
+                                  fontSize: 28,
+
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              const SizedBox(),
+                            ],
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          // AQUI DEJAS IGUAL TUS STREAMBUILDER
+                          const SizedBox(height: 15),
+
+                          StreamBuilder<List<NoteModel>>(
+                            stream: NoteService().getNotes(user!.uid),
+                            builder: (context, snapshot) {
+                              final myNotes = _applyFilters(
+                                snapshot.data ?? [],
+                              );
+
+                              myNotes.sort(
+                                (a, b) => b.createdAt.compareTo(a.createdAt),
+                              );
+
+                              if (myNotes.isEmpty) {
+                                return _emptyState("No tienes notas aún");
+                              }
+
+                              return ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: myNotes.length,
+                                itemBuilder: (context, index) {
+                                  return _noteCard(myNotes[index]);
+                                },
+                              );
+                            },
+                          ),
+
+                          const SizedBox(height: 25),
+
+                          const Text(
+                            "Notas públicas",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          StreamBuilder<List<NoteModel>>(
+                            stream: NoteService().getAllNotes(),
+                            builder: (context, snapshot) {
+                              List<NoteModel> notes = _applyFilters(
+                                snapshot.data ?? [],
+                              );
+
+                              notes.sort(
+                                (a, b) => b.createdAt.compareTo(a.createdAt),
+                              );
+
+                              if (notes.isEmpty) {
+                                return _emptyState("No hay coincidencias");
+                              }
+
+                              return ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: notes.length,
+                                itemBuilder: (context, index) {
+                                  return _noteCard(notes[index]);
+                                },
+                              );
+                            },
+                          ),
+                          StreamBuilder<List<NoteModel>>(
+                            stream: NoteService().getNotes(user!.uid),
+
+                            builder: (context, snapshot) {
+                              final notes = _applyFilters(snapshot.data ?? []);
+
+                              return ListView.builder(
+                                shrinkWrap: true,
+
+                                physics: const NeverScrollableScrollPhysics(),
+
+                                itemCount: notes.length,
+
+                                itemBuilder: (context, index) {
+                                  return _noteCard(notes[index]);
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 10),
-
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Mis Notas",
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF7B2FF7),
-                          ),
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/notes');
-                          },
-                          icon: const Icon(Icons.add),
-                          label: const Text(
-                            "Nueva Nota",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    StreamBuilder<List<NoteModel>>(
-                      stream: NoteService().getNotes(user!.uid),
-                      builder: (context, snapshot) {
-                        final myNotes = _applyFilters(snapshot.data ?? []);
-
-                        if (myNotes.isEmpty) {
-                          return _emptyState("No tienes notas aún");
-                        }
-
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: myNotes.length,
-                          itemBuilder: (context, index) {
-                            return _noteCard(myNotes[index]);
-                          },
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    const Text(
-                      "Notas públicas",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    StreamBuilder<List<NoteModel>>(
-                      stream: NoteService().getAllNotes(),
-                      builder: (context, snapshot) {
-                        List<NoteModel> notes = _applyFilters(
-                          snapshot.data ?? [],
-                        );
-
-                        if (notes.isEmpty) {
-                          return _emptyState("No hay coincidencias");
-                        }
-
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: notes.length,
-                          itemBuilder: (context, index) {
-                            return _noteCard(notes[index]);
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            if (!isMobile) _buildCategoryPanel(),
           ],
         ),
       ),
 
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(context, '/notes');
-        },
-        label: const Text("Nueva Nota", style: TextStyle(color: Colors.white)),
-        icon: const Icon(Icons.add),
-        backgroundColor: const Color(0xFF7B2FF7),
-      ),
-
       bottomNavigationBar: const CustomBottomNav(currentIndex: 0),
+      endDrawer: isMobile
+          ? Drawer(width: 260, child: SafeArea(child: _buildCategoryPanel()))
+          : null,
     );
   }
 
+  Widget _buildCategoryPanel() {
+    return Container(
+      width: 160,
+      decoration: const BoxDecoration(
+        color: Color(0xFFE3F2FD),
+        border: Border(left: BorderSide(color: Colors.black12)),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(15),
+
+            child: SizedBox(
+              width: double.infinity,
+
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1565C0),
+                  padding: const EdgeInsets.all(14),
+                  foregroundColor: Colors.white,
+                ),
+
+                onPressed: () {
+                  Navigator.pushNamed(context, '/notes');
+                },
+
+                child: const Text("＋ Nota"),
+              ),
+            ),
+          ),
+
+          const Divider(),
+
+          Expanded(
+            child: ListView.builder(
+              itemCount: categories.length,
+
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                return MouseRegion(
+                  cursor: SystemMouseCursors.click,
+
+                  child: StatefulBuilder(
+                    builder: (context, setHover) {
+                      bool hover = false;
+
+                      return MouseRegion(
+                        onEnter: (_) {
+                          setHover(() {
+                            hover = true;
+                          });
+                        },
+
+                        onExit: (_) {
+                          setHover(() {
+                            hover = false;
+                          });
+                        },
+
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+
+                          child: Material(
+                            color: selectedCategory == cat
+                                ? const Color(0xFF1565C0)
+                                : hover
+                                ? Colors.white
+                                : Colors.transparent,
+
+                            borderRadius: BorderRadius.circular(12),
+
+                            child: ListTile(
+                              title: Text(
+                                cat,
+
+                                style: TextStyle(
+                                  color: selectedCategory == cat
+                                      ? Colors.white
+                                      : Colors.black87,
+
+                                  fontWeight: selectedCategory == cat
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+
+                              onTap: () {
+                                setState(() {
+                                  selectedCategory = cat;
+                                });
+
+                                if (MediaQuery.of(context).size.width < 700) {
+                                  Navigator.pop(context); // Cierra el Drawer
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //NoteCard
   Widget _noteCard(NoteModel note) {
     final isOwner = note.userId == user?.uid;
     bool isExpanded = false;
@@ -445,69 +588,138 @@ class _HomeScreenState extends State<HomeScreen> {
               isExpanded = !isExpanded;
             });
           },
+
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(15),
+
+            margin: const EdgeInsets.only(bottom: 10),
+
+            padding: const EdgeInsets.all(12),
+
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
+
+              borderRadius: BorderRadius.circular(14),
+
+              boxShadow: [
+                const BoxShadow(color: Colors.black12, blurRadius: 5),
+              ],
             ),
+
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+
               children: [
+                // =========================
+                // CABECERA
+                // =========================
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        note.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.send, size: 18),
-                        color: const Color(0xFF7B2FF7),
-                        onPressed: () {
-                          _shareNoteToUsers(note.id);
-                        },
-                      ),
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection("users")
+                          .doc(note.userId)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        String photoUrl = "";
+                        String userName = note.userName;
+                        String userRole = note.userRole;
+
+                        if (snapshot.hasData && snapshot.data!.exists) {
+                          final userData =
+                              snapshot.data!.data() as Map<String, dynamic>;
+
+                          photoUrl = userData["photoUrl"] ?? "";
+                          userName = userData["name"] ?? note.userName;
+                          userRole = userData["role"] ?? note.userRole;
+                        }
+
+                        return Expanded(
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundImage: photoUrl.isNotEmpty
+                                    ? NetworkImage(photoUrl)
+                                    : null,
+                                child: photoUrl.isEmpty
+                                    ? Text(
+                                        userName[0].toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+
+                              const SizedBox(width: 10),
+
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "$userName ($userRole)",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+
+                                    Text(
+                                      note.createdAt.toLocal().toString().split(
+                                        ' ',
+                                      )[0],
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
 
-                    const SizedBox(width: 5),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.send,
+                        size: 20,
+                        color: Color(0xFF1565C0),
+                      ),
+
+                      onPressed: () {
+                        _shareNoteToUsers(note.id);
+                      },
+                    ),
+
                     if (isOwner)
                       PopupMenuButton<String>(
                         onSelected: (value) async {
                           if (value == "edit") {
                             Navigator.push(
                               context,
+
                               MaterialPageRoute(
                                 builder: (_) => NotesScreen(note: note),
                               ),
                             );
-                          } else if (value == "delete") {
+                          }
+
+                          if (value == "delete") {
                             await NoteService().delete(note.id);
-                            CustomAlert.show(
-                              context,
-                              title: "Eliminado",
-                              message: "Nota eliminada",
-                              icon: Icons.delete,
-                              color: Colors.red,
-                            );
                           }
                         },
+
                         itemBuilder: (context) => const [
                           PopupMenuItem(value: "edit", child: Text("Editar")),
+
                           PopupMenuItem(
                             value: "delete",
+
                             child: Text("Eliminar"),
                           ),
                         ],
@@ -515,68 +727,83 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 5),
+                const SizedBox(height: 10),
 
-                AnimatedCrossFade(
-                  duration: const Duration(milliseconds: 200),
-                  crossFadeState: isExpanded
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  firstChild: Text(
-                    note.content,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+                // =========================
+                // IMAGEN
+                // =========================
+                if (note.imageUrl.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+
+                    child: SizedBox(
+                      height: 180,
+
+                      width: double.infinity,
+
+                      child: Image.network(note.imageUrl, fit: BoxFit.cover),
+                    ),
                   ),
-                  secondChild: Text(note.content),
-                ),
 
-                const SizedBox(height: 6),
+                if (note.videoUrl.isNotEmpty) VideoPreview(url: note.videoUrl),
 
+                const SizedBox(height: 10),
+
+                // =========================
+                // TITULO
+                // =========================
                 Text(
-                  isExpanded ? "Ver menos ▲" : "Ver más ▼",
+                  note.title,
+
                   style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.purple,
+                    fontSize: 16,
+
                     fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(height: 8),
-
-                Text(
-                  "Por: ${note.userName} (${note.userRole})",
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-
-                const SizedBox(height: 2),
-
-                Text(
-                  "Fecha: ${note.createdAt.toLocal().toString().split(' ')[0]}",
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-
                 const SizedBox(height: 5),
 
-                Row(
-                  children: [
-                    Text(
-                      note.category,
-                      style: const TextStyle(
-                        color: Colors.purple,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Icon(
-                      note.isPublic ? Icons.public : Icons.lock,
-                      size: 16,
-                      color: note.isPublic ? Colors.green : Colors.grey,
-                    ),
-                  ],
+                // =========================
+                // TEXTO
+                // =========================
+                AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 200),
+
+                  crossFadeState: isExpanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+
+                  firstChild: Text(
+                    note.content,
+
+                    maxLines: 3,
+
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  secondChild: Text(note.content),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 4),
 
+                Text(
+                  isExpanded ? "Ver menos ▲" : "Ver más ▼",
+
+                  style: const TextStyle(
+                    color: Color(0xFF1565C0),
+
+                    fontSize: 11,
+
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const Divider(),
+
+                // =========================
+                // ACCIONES
+                // =========================
                 Row(
                   children: [
                     IconButton(
@@ -584,27 +811,61 @@ class _HomeScreenState extends State<HomeScreen> {
                         note.likes.contains(user!.uid)
                             ? Icons.favorite
                             : Icons.favorite_border,
+
                         color: Colors.red,
                       ),
+
                       onPressed: () {
                         NoteService().toggleLike(note.id, user!.uid);
                       },
                     ),
+
                     Text("${note.likes.length}"),
-                    const SizedBox(width: 15),
+
+                    const SizedBox(width: 10),
+
                     IconButton(
                       icon: const Icon(Icons.comment),
+
                       onPressed: () {
                         showComments(note);
                       },
                     ),
+
                     StreamBuilder(
                       stream: NoteService().getComments(note.id),
+
                       builder: (context, snapshot) {
-                        final count = snapshot.data?.docs.length ?? 0;
-                        return Text("$count");
+                        return Text("${snapshot.data?.docs.length ?? 0}");
                       },
                     ),
+
+                    IconButton(
+                      icon: const Icon(
+                        Icons.smart_toy,
+
+                        color: Color(0xFF1565C0),
+                      ),
+
+                      onPressed: () {
+                        _askAIAboutNote(note);
+                      },
+                    ),
+
+                    const Spacer(),
+
+                    if (!isOwner)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.bookmark_add,
+
+                          color: Colors.orange,
+                        ),
+
+                        onPressed: () {
+                          _saveNoteToProfile(note);
+                        },
+                      ),
                   ],
                 ),
               ],
@@ -629,7 +890,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 🔥 COMENTARIOS PRO (threads)
   void showComments(NoteModel note) {
     final controller = TextEditingController();
 
@@ -720,7 +980,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 5),
                         CircleAvatar(
-                          backgroundColor: const Color(0xFF7B2FF7),
+                          backgroundColor: const Color(0xFF1565C0),
                           child: IconButton(
                             icon: const Icon(Icons.send, color: Colors.white),
                             onPressed: () async {
@@ -762,11 +1022,11 @@ class _HomeScreenState extends State<HomeScreen> {
     required String commentId,
     required Map<String, dynamic> data,
     required bool isMe,
-    int level = 0, // 🔥 para jerarquía
+    int level = 0,
   }) {
     return Padding(
       padding: EdgeInsets.only(
-        left: 10.0 + (level * 20), // 🔥 indentación dinámica
+        left: 10.0 + (level * 20),
         right: 10,
         top: 4,
         bottom: 4,
@@ -780,7 +1040,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isMe ? const Color(0xFF7B2FF7) : Colors.white,
+                color: isMe ? const Color(0xFF1565C0) : Colors.white,
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: const [
                   BoxShadow(color: Colors.black12, blurRadius: 4),
@@ -789,7 +1049,6 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🔥 QUIÉN RESPONDE A QUIÉN
                   if (data["parentUserName"] != null)
                     Text(
                       "↳ respondiendo a @${data["parentUserName"]}",
@@ -826,7 +1085,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 5),
 
-                  // 🔥 BOTÓN RESPONDER
                   if (!isMe)
                     GestureDetector(
                       onTap: () {
@@ -836,7 +1094,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         "Responder",
                         style: TextStyle(
                           fontSize: 11,
-                          color: isMe ? Colors.white70 : Colors.blue,
+                          color: isMe
+                              ? Colors.white70
+                              : const Color(0xFF1565C0),
                         ),
                       ),
                     ),
@@ -898,7 +1158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 userRole: u["role"],
                 userId: user!.uid,
                 parentId: parentId,
-                parentUserName: userName, // 🔥 CLAVE
+                parentUserName: userName,
               );
 
               Navigator.pop(context);
@@ -908,6 +1168,59 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _saveNoteToProfile(NoteModel note) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+
+      if (currentUser == null) return;
+
+      final existing = await FirebaseFirestore.instance
+          .collection("saved_notes")
+          .where("noteId", isEqualTo: note.id)
+          .where("savedBy", isEqualTo: currentUser.uid)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Ya guardaste esta nota")));
+        return;
+      }
+
+      await FirebaseFirestore.instance.collection("saved_notes").add({
+        // Identificación
+        "noteId": note.id,
+        "savedBy": currentUser.uid,
+
+        // Información de la nota
+        "title": note.title,
+        "content": note.content,
+        "category": note.category,
+        "imageUrl": note.imageUrl,
+        "videoUrl": note.videoUrl,
+
+        // Información del autor original
+        "userId": note.userId,
+        "userName": note.userName,
+        "userRole": note.userRole,
+
+        // Fecha original de la nota
+        "createdAt": Timestamp.fromDate(note.createdAt),
+
+        // Fecha en la que fue guardada (opcional)
+        "savedAt": Timestamp.now(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Nota guardada en tu perfil")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
   }
 
   void _editComment(String noteId, String commentId, String oldText) {
@@ -973,7 +1286,7 @@ class _HomeScreenState extends State<HomeScreen> {
               isMe: isMe,
               level: level,
             ),
-            ...buildTree(doc.id, level + 1), // 🔥 recursivo
+            ...buildTree(doc.id, level + 1),
           ],
         );
       }).toList();
@@ -986,23 +1299,428 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('¿Cerrar sesión?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          '¿Cerrar sesión?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text('¿Estás seguro de que deseas salir?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0D47A1),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
+
               if (mounted) {
                 Navigator.pushReplacementNamed(context, '/login');
               }
             },
-            child: const Text('Salir', style: TextStyle(color: Colors.red)),
+            child: const Text('Salir'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _askAIAboutNote(NoteModel note) {
+    final questionCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.smart_toy, color: Color(0xFF1565C0)),
+            SizedBox(width: 10),
+            Text("Preguntar a la IA"),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    note.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+
+                  const SizedBox(height: 5),
+
+                  Text(
+                    note.content,
+                    maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            TextField(
+              controller: questionCtrl,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: "Ej: Resume esta nota o explícame este tema",
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text("Cancelar"),
+          ),
+
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1565C0),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              final question = questionCtrl.text.trim();
+
+              if (question.isEmpty) return;
+
+              Navigator.pop(context);
+
+              final prompt =
+                  """
+Eres una IA educativa integrada en una aplicación de notas llamada NoteMind.
+
+Debes analizar la nota del usuario y responder basándote únicamente en el contenido proporcionado.
+
+NOTA DEL USUARIO
+
+Título:
+${note.title}
+
+Contenido:
+${note.content}
+
+${note.imageUrl.isNotEmpty ? "Imagen de la nota: ${note.imageUrl}" : ""}
+
+PREGUNTA DEL USUARIO:
+$question
+
+Responde de manera clara, útil y natural.
+""";
+              Navigator.pushReplacementNamed(
+                context,
+                "/chat_ai",
+                arguments: {"prompt": prompt, "noteTitle": note.title},
+              );
+            },
+            icon: const Icon(Icons.send),
+            label: const Text("Preguntar"),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class VideoPreview extends StatefulWidget {
+  final String url;
+
+  const VideoPreview({super.key, required this.url});
+
+  @override
+  State<VideoPreview> createState() => _VideoPreviewState();
+}
+
+class _VideoPreviewState extends State<VideoPreview> {
+  late VideoPlayerController controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+      ..initialize().then((_) {
+        if (mounted) setState(() {});
+      });
+
+    controller.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _seekForward() async {
+    final pos = await controller.position;
+    if (pos != null) {
+      await controller.seekTo(pos + const Duration(seconds: 10));
+    }
+  }
+
+  Future<void> _seekBackward() async {
+    final pos = await controller.position;
+    if (pos != null) {
+      final newPos = pos - const Duration(seconds: 10);
+      await controller.seekTo(newPos.isNegative ? Duration.zero : newPos);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!controller.value.isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AspectRatio(
+          aspectRatio: controller.value.aspectRatio,
+          child: VideoPlayer(controller),
+        ),
+
+        VideoProgressIndicator(
+          controller,
+          allowScrubbing: true,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        ),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.replay_10),
+              onPressed: _seekBackward,
+            ),
+
+            IconButton(
+              icon: Icon(
+                controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+              ),
+              onPressed: () {
+                setState(() {
+                  controller.value.isPlaying
+                      ? controller.pause()
+                      : controller.play();
+                });
+              },
+            ),
+
+            IconButton(
+              icon: const Icon(Icons.forward_10),
+              onPressed: _seekForward,
+            ),
+
+            IconButton(
+              icon: const Icon(Icons.fullscreen),
+              onPressed: () async {
+                final wasPlaying = controller.value.isPlaying;
+                final position = controller.value.position;
+
+                await controller.pause();
+
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FullScreenVideo(
+                      url: widget.url,
+                      startPosition: position,
+                      autoPlay: wasPlaying,
+                    ),
+                  ),
+                );
+
+                if (result != null) {
+                  await controller.seekTo(result["position"]);
+
+                  if (result["playing"] == true) {
+                    await Future.delayed(
+                      const Duration(seconds: 0, milliseconds: 50),
+                    );
+                    await controller.play();
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class FullScreenVideo extends StatefulWidget {
+  final String url;
+  final Duration startPosition;
+  final bool autoPlay;
+
+  const FullScreenVideo({
+    super.key,
+    required this.url,
+    required this.startPosition,
+    required this.autoPlay,
+  });
+
+  @override
+  State<FullScreenVideo> createState() => _FullScreenVideoState();
+}
+
+class _FullScreenVideoState extends State<FullScreenVideo> {
+  late VideoPlayerController controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    controller.initialize().then((_) async {
+      await controller.seekTo(widget.startPosition);
+
+      controller.setLooping(false);
+
+      if (widget.autoPlay) {
+        await controller.play();
+      }
+
+      if (mounted) {
+        setState(() {});
+      }
+    });
+
+    controller.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Future<bool> _closeVideo() async {
+    Navigator.pop(context, {
+      "position": controller.value.position,
+      "playing": controller.value.isPlaying,
+    });
+
+    return true;
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _forward() async {
+    final pos = await controller.position;
+    if (pos != null) {
+      await controller.seekTo(pos + const Duration(seconds: 10));
+    }
+  }
+
+  Future<void> _rewind() async {
+    final pos = await controller.position;
+    if (pos != null) {
+      final newPos = pos - const Duration(seconds: 10);
+
+      await controller.seekTo(newPos.isNegative ? Duration.zero : newPos);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!controller.value.isInitialized) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: controller.value.aspectRatio,
+                  child: VideoPlayer(controller),
+                ),
+              ),
+            ),
+
+            VideoProgressIndicator(
+              controller,
+              allowScrubbing: true,
+              padding: const EdgeInsets.all(12),
+            ),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  color: Colors.white,
+                  icon: const Icon(Icons.replay_10),
+                  onPressed: _rewind,
+                ),
+
+                IconButton(
+                  color: Colors.white,
+                  icon: Icon(
+                    controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      controller.value.isPlaying
+                          ? controller.pause()
+                          : controller.play();
+                    });
+                  },
+                ),
+
+                IconButton(
+                  color: Colors.white,
+                  icon: const Icon(Icons.forward_10),
+                  onPressed: _forward,
+                ),
+
+                IconButton(
+                  color: Colors.white,
+                  icon: const Icon(Icons.fullscreen_exit),
+                  onPressed: _closeVideo,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }
